@@ -53,6 +53,13 @@ class TileDownloadService(
     private val mutex = Mutex()
     private val maxCacheSize = 50
     private val maxCacheAge = Duration.ofMinutes(30)
+    private val tileEndpoints = listOf(
+        "https://tile.openstreetmap.org",
+        "https://tile.openstreetmap.de",
+    )
+
+    @Volatile
+    private var preferredTileEndpointIndex = 0
 
     private val downloadQueue: Channel<Tile> = Channel(Channel.UNLIMITED)
 
@@ -149,11 +156,30 @@ class TileDownloadService(
     }
 
     private suspend fun fetchTileFromNetwork(tile: Tile): Bitmap {
-        // This logic remains largely the same, just extracted
-        return callbackFlow {
-            val url = "https://tile.openstreetmap.org/${tile.z}/${tile.x}/${tile.y}.png"
+        var lastError: Throwable? = null
+        tileEndpoints.indices.forEach { offset ->
+            val endpointIndex = (preferredTileEndpointIndex + offset) % tileEndpoints.size
+            val endpoint = tileEndpoints[endpointIndex]
+            try {
+                return fetchTileFromEndpoint(tile, endpoint).also {
+                    preferredTileEndpointIndex = endpointIndex
+                }
+            } catch (error: Throwable) {
+                lastError = error
+                Log.w(
+                    KarooRouteGraphExtension.TAG,
+                    "Tile endpoint failed for ${tile.z}/${tile.x}/${tile.y}: $endpoint",
+                    error,
+                )
+            }
+        }
+        throw IOException("All OpenStreetMap tile endpoints failed", lastError)
+    }
 
-            Log.d(KarooRouteGraphExtension.TAG, "Http tile request to ${url}...")
+    private suspend fun fetchTileFromEndpoint(tile: Tile, endpoint: String): Bitmap =
+        callbackFlow {
+            val url = "$endpoint/${tile.z}/${tile.x}/${tile.y}.png"
+            Log.d(KarooRouteGraphExtension.TAG, "Http tile request to $url...")
 
             val listenerId = karooSystemServiceProvider.karooSystemService.addConsumer(
                 OnHttpResponse.MakeHttpRequest(
@@ -163,28 +189,23 @@ class TileDownloadService(
                     headers = mapOf("User-Agent" to KarooRouteGraphExtension.TAG),
                 ),
             ) { event: OnHttpResponse ->
-                if (event.state is HttpResponseState.Complete) {
-                    val completeEvent = (event.state as HttpResponseState.Complete)
+                val complete = event.state as? HttpResponseState.Complete
+                    ?: return@addConsumer
+                val error = complete.error
+                if (error != null) {
+                    close(IOException(error))
+                    return@addConsumer
+                }
 
-                    try {
-                        val inputStream =
-                            java.io.ByteArrayInputStream(completeEvent.body ?: ByteArray(0))
-
-                        if (completeEvent.error != null) {
-                            Log.e(
-                                KarooRouteGraphExtension.TAG,
-                                "Http response event; error ${completeEvent.error}"
-                            )
-                            error(completeEvent.error ?: "Unknown error")
-                        }
-
-                        val result = BitmapFactory.decodeStream(inputStream)
-
-                        trySendBlocking(result)
-                    } catch (e: Throwable) {
-                        Log.e(KarooRouteGraphExtension.TAG, "Failed to process response", e)
-                    }
-
+                val bitmap = BitmapFactory.decodeByteArray(
+                    complete.body ?: ByteArray(0),
+                    0,
+                    complete.body?.size ?: 0,
+                )
+                if (bitmap == null) {
+                    close(IOException("Tile response was not a decodable image"))
+                } else {
+                    trySendBlocking(bitmap)
                     close()
                 }
             }
@@ -192,7 +213,6 @@ class TileDownloadService(
                 karooSystemServiceProvider.karooSystemService.removeConsumer(listenerId)
             }
         }.single()
-    }
 
     private fun saveTileToFile(bitmap: Bitmap, file: File) {
         try {

@@ -10,6 +10,8 @@ a button to navigate to POIs along the route (e. g. upcoming gas stations for re
 as a companion app on long rides where you want to have a quick overview of the route that includes upcoming checkpoints,
 climbs and refueling opportunities so that you can pace yourself accordingly.
 
+The app also includes an AMap-powered bicycle route planner for China. It can search for a destination, request candidate bicycle routes, preview a selected route on an OpenStreetMap basemap, and export it as a standard GPX file.
+
 Compatible with Karoo 2 and Karoo 3 devices.
 
 <img width="200" height="333" alt="Minimap" src="minimap.png" /> <img width="200" height="333" alt="POI navigation" src="poinav.png" /> <img width="200" height="333" alt="Vertical Route Graph" src="vertical_routegraph.png" /> <img width="200" height="333" alt="Surface conditions" src="routegraph_surface_conditions.png" />
@@ -17,6 +19,24 @@ Compatible with Karoo 2 and Karoo 3 devices.
 ## Installation
 
 This extension is available from the extension library on your Karoo device. Find more information on extensions in the [Hammerhead FAQ](https://support.hammerhead.io/hc/en-us/articles/34676015530907-Karoo-OS-Extensions-Library).
+
+### Building with AMap support
+
+AMap route planning requires an AMap **Web Service API key**. Do not commit API keys or GitHub tokens to the repository. The key can be supplied through one of these local mechanisms, in precedence order:
+
+1. Gradle property `AMAP_WEB_API_KEY`
+2. Environment variable `AMAP_WEB_API_KEY`
+3. `amap.webApiKey` in the ignored project `local.properties`
+
+For a local source build that needs GitHub Packages credentials, keep them outside the repository in `~/.gradle/gradle.properties`:
+
+```properties
+gpr.user=YOUR_GITHUB_USERNAME
+gpr.key=YOUR_GITHUB_TOKEN
+AMAP_WEB_API_KEY=YOUR_AMAP_WEB_SERVICE_KEY
+```
+
+A key embedded in an APK cannot be treated as a secret. Configure the restrictions required by AMap for production use, or place the Web Service calls behind an appropriate server-side proxy.
 
 ## Usage
 
@@ -36,6 +56,8 @@ By default, route graph datafields also feature a POI button in the top right co
 - ETA at POI: Shows the estimated time of arrival at the next POI along the route. The ETA is calculated based on your average power output over the last hour. If you don't have a powermeter, this uses a rough approximation based on your speed and the route gradient.
 - ETA at end of route: Shows the estimated time of arrival at the end of the route.
 - Gravel remaining: Shows the remaining distance on offroad surfaces (gravel, dirt, loose surfaces like sand or grass) along the route. Requires surface condition display to be enabled in the settings.
+
+The **AMap route planner** is available from the app's main menu. It supports the current GPS position or manually entered WGS84 coordinates as the origin, AMap destination search, route candidate selection, distance/time summaries, an OSM-backed route preview, and GPX save/share actions.
 
 Additionally, you can enable chevrons on the map to indicate gradients. The chevrons are drawn on top of the route (see third screenshot). Find more information below.
 
@@ -59,8 +81,18 @@ For high zoom levels (2 km), instead of climbs, each 100 meter segment of the ro
 <img width="200" height="333" alt="Minimap" src="minimap.png" />
 
 The minimap data field shows a secondary map of the whole route, including climbs and POIs. The current position is indicated by a yellow arrow.
-You can zoom in by touching the data field. The minimap uses OpenStreetMap raster tiles served by https://tile.openstreetmap.org, so it requires an active internet connection to load the map tiles (provided by the companion app).
+You can zoom in by touching the data field. The minimap uses OpenStreetMap raster tiles, preferring https://tile.openstreetmap.org and falling back to https://tile.openstreetmap.de when the primary endpoint is unreachable, so it requires an active internet connection to load uncached map tiles (provided by the companion app).
 Downloaded tiles are cached on the Karoo for offline use.
+
+### AMap bicycle route planner
+
+The planner uses the official AMap Web Service APIs for destination search and bicycle directions. AMap route geometry is retained as GCJ-02 and converted to WGS84 before it is drawn on the OSM preview or exported.
+
+The preview uses the same cached OSM tile service as the minimap, but renders native 256 px tiles so labels and roads remain sharp. The selected route is drawn with start/end markers and automatically fitted to the preview.
+
+GPX export writes UTF-8 GPX 1.1 with the full WGS84 route shape, name, description, and distance. It does not invent elevation, timestamps, or turn instructions. Files can be saved to `Downloads/KarooRouteGraph` or shared through Android.
+
+The public Karoo Extension SDK does not expose an API for inserting a route directly into the native Karoo route library. Import the generated GPX through Hammerhead Dashboard or share it to the Hammerhead Companion App. Availability of a compatible on-device share target depends on the apps installed on the Karoo.
 
 ### Surface Conditions
 
@@ -108,10 +140,11 @@ Use data type id `TYPE_EXT::karoo-routegraph::surfacetype`.
 ## Credits
 
 - OpenStreetMap Data © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors (<a href="https://opendatacommons.org/licenses/odbl/index.html">ODbL</a>), <a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, <a href="https://openstreetmap.org/fixthemap">participate/fix mistakes</a>
-  - OpenStreetMap raster tiles for the minimap served by https://tile.openstreetmap.org
+  - OpenStreetMap raster tiles for the minimap and route preview are served by https://tile.openstreetmap.org, with https://tile.openstreetmap.de as a fallback
   - Nearby POI search uses https://overpass-api.de
   - POI search box uses nominatim API for geocoding: https://nominatim.openstreetmap.org/
   - Offline POIs are downloaded from https://routegraph.timklge.de
+- AMap destination search and bicycle directions use the official [AMap Web Service APIs](https://lbs.amap.com/api/webservice/summary).
 - Icons are from [boxicons.com](https://boxicons.com) ([MIT-licensed](icon_credits.txt))
 - Uses [karoo-ext](https://github.com/hammerheadnav/karoo-ext) (Apache2-licensed)
 - Uses the [ANTLR grammar](https://github.com/opening-hours/opening_hours_grammar) for OSM opening hours definitions (MIT-licensed)

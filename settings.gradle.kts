@@ -17,12 +17,11 @@
 fun getLocalProperty(key: String, file: String = "local.properties"): String? {
     val properties = java.util.Properties()
     val localProperties = File(file)
-    if (localProperties.isFile) {
-        java.io.InputStreamReader(java.io.FileInputStream(localProperties), Charsets.UTF_8).use { reader ->
-            properties.load(reader)
-        }
-    } else error("Local properties file not found")
+    if (!localProperties.isFile) return null
 
+    java.io.InputStreamReader(java.io.FileInputStream(localProperties), Charsets.UTF_8).use { reader ->
+        properties.load(reader)
+    }
     return properties.getProperty(key)
 }
 pluginManagement {
@@ -37,8 +36,12 @@ plugins {
 }
 
 val env: MutableMap<String, String> = System.getenv()
-val gprUser = if(env.containsKey("GPR_USER")) env["GPR_USER"] else getLocalProperty("gpr.user")
-val gprKey = if(env.containsKey("GPR_KEY")) env["GPR_KEY"] else getLocalProperty("gpr.key")
+val gprUser = providers.gradleProperty("gpr.user").orNull
+    ?: env["GPR_USER"]
+    ?: getLocalProperty("gpr.user")
+val gprKey = providers.gradleProperty("gpr.key").orNull
+    ?: env["GPR_KEY"]
+    ?: getLocalProperty("gpr.key")
 
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)

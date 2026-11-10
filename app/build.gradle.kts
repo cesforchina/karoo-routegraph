@@ -15,6 +15,7 @@
  */
 
 import java.util.Base64
+import java.util.Properties
 
 plugins {
     alias(libs.plugins.android.application)
@@ -22,6 +23,20 @@ plugins {
     kotlin("plugin.serialization") version "2.3.20"
     id("com.google.devtools.ksp")
 }
+
+val localProperties = Properties().apply {
+    rootProject.file("local.properties")
+        .takeIf(File::isFile)
+        ?.inputStream()
+        ?.use(::load)
+}
+val amapWebApiKey = providers.gradleProperty("AMAP_WEB_API_KEY").orNull
+    ?: System.getenv("AMAP_WEB_API_KEY")
+    ?: localProperties.getProperty("amap.webApiKey")
+    ?: ""
+val escapedAmapWebApiKey = amapWebApiKey
+    .replace("\\", "\\\\")
+    .replace("\"", "\\\"")
 
 android {
     namespace = "de.timklge.karooroutegraph"
@@ -34,6 +49,7 @@ android {
         targetSdk = 28
         versionCode = 100 + (System.getenv("BUILD_NUMBER")?.toInt() ?: 1)
         versionName = System.getenv("RELEASE_VERSION") ?: "1.0"
+        buildConfigField("String", "AMAP_WEB_API_KEY", "\"$escapedAmapWebApiKey\"")
     }
 
     signingConfigs {

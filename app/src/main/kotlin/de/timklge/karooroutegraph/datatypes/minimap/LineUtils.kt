@@ -105,7 +105,8 @@ fun LineString.getCenterPoint(): Point {
 fun LineString.getOSMZoomLevelToFit(
     screenWidthPx: Int,
     screenHeightPx: Int,
-    paddingPx: Int = 10
+    paddingPx: Int = 10,
+    tileSizePx: Double = TARGET_TILE_SIZE,
 ): Float {
     if (this.coordinates().isEmpty()) {
         return 15f // Default zoom level for empty LineString
@@ -165,8 +166,8 @@ fun LineString.getOSMZoomLevelToFit(
         val tileHeight = maxTileY - minTileY
 
         // Convert to pixels (each tile is 256px at OSM standard)
-        val pixelWidth = tileWidth * TARGET_TILE_SIZE
-        val pixelHeight = tileHeight * TARGET_TILE_SIZE
+        val pixelWidth = tileWidth * tileSizePx
+        val pixelHeight = tileHeight * tileSizePx
 
         // Check if this zoom level fits within the effective screen dimensions
         val fitsWidth = pixelWidth <= effectiveWidth
@@ -209,7 +210,13 @@ fun latToTileY(lat: Double, zoom: Float): Double {
     return mercator * (1 shl zoom.toInt()) * (2.0f).pow(zoom - zoom.toInt())
 }
 
-fun getRequiredTiles(zoomLevel: Float, widthPx: Int, heightPx: Int, mapCenter: Point): Set<Tile> {
+fun getRequiredTiles(
+    zoomLevel: Float,
+    widthPx: Int,
+    heightPx: Int,
+    mapCenter: Point,
+    tileSizePx: Double = TARGET_TILE_SIZE,
+): Set<Tile> {
     val requiredTiles = mutableSetOf<Tile>()
     val intZoom = floor(zoomLevel).toInt() // Use the integer part for tile indexing
 
@@ -219,8 +226,8 @@ fun getRequiredTiles(zoomLevel: Float, widthPx: Int, heightPx: Int, mapCenter: P
 
     // Calculate how many *scaled* tiles are visible horizontally and vertically from the center
     // This calculation remains based on the visual scale, so float zoom is appropriate here
-    val halfWidthInTiles = (widthPx / 2.0) / TARGET_TILE_SIZE
-    val halfHeightInTiles = (heightPx / 2.0) / TARGET_TILE_SIZE
+    val halfWidthInTiles = (widthPx / 2.0) / tileSizePx
+    val halfHeightInTiles = (heightPx / 2.0) / tileSizePx
 
     // Calculate the fractional tile coordinates of the corners based on scaled tiles and float zoom
     val topLeftTileX = centerTileX - halfWidthInTiles

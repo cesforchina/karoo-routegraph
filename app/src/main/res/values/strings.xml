@@ -189,4 +189,23 @@
     <string name="closed_opening_soon">🔴 Opens at %1s</string>
     <string name="open_now">🟢 Now open</string>
     <string name="closed_now">🔴 Now closed</string>
+    <!-- AMap route planner -->
+    <string name="amap_route_planner">AMap route planner</string>
+    <string name="route_origin">Origin</string>
+    <string name="use_current_location">Use current GPS position</string>
+    <string name="route_destination">Destination</string>
+    <string name="destination_search">Destination name or address</string>
+    <string name="search_region_optional">City or region (optional)</string>
+    <string name="search_destination">Search destination</string>
+    <string name="longitude">Longitude</string>
+    <string name="latitude">Latitude</string>
+    <string name="plan_bicycle_routes">Plan bicycle routes</string>
+    <string name="route_candidate">Route %1$d</string>
+    <string name="route_preview">Route preview</string>
+    <string name="route_name">Route name</string>
+    <string name="save_gpx">Save GPX</string>
+    <string name="share_gpx">Share GPX</string>
+    <string name="gpx_saved">GPX saved to Downloads/KarooRouteGraph</string>
+    <string name="gpx_import_hint">Import the GPX through Hammerhead Dashboard or share it to the Hammerhead Companion App.</string>
+
 </resources>

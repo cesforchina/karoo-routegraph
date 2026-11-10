@@ -64,6 +64,7 @@ enum class SettingsScreen {
     ELEVATION_PROFILE,
     GRADIENT_CHEVRONS,
     MINIMAP,
+    ROUTE_PLANNER,
     POINTS_OF_INTEREST,
 }
 
@@ -77,6 +78,7 @@ val menuItems = listOf(
     MenuItem(SettingsScreen.ELEVATION_PROFILE, R.drawable.menu_spline, R.string.elevation_profile),
     MenuItem(SettingsScreen.GRADIENT_CHEVRONS, R.drawable.menu_chevron, R.string.gradient_chevrons),
     MenuItem(SettingsScreen.MINIMAP, R.drawable.menu_map, R.string.minimap),
+    MenuItem(SettingsScreen.ROUTE_PLANNER, R.drawable.menu_map, R.string.amap_route_planner),
     MenuItem(SettingsScreen.POINTS_OF_INTEREST, R.drawable.menu_poi, R.string.points_of_interest_poi),
 )
 
@@ -125,6 +127,11 @@ fun MainScreen(onFinish: () -> Unit) {
         SettingsScreen.MINIMAP -> {
             MinimapScreen(
                 karooSystemServiceProvider = koinInject(),
+                onBack = { currentScreen = SettingsScreen.MENU }
+            )
+        }
+        SettingsScreen.ROUTE_PLANNER -> {
+            RoutePlannerScreen(
                 onBack = { currentScreen = SettingsScreen.MENU }
             )
         }

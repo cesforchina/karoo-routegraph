@@ -30,3 +30,7 @@
 -keep class de.timklge.karooroutegraph.datatypes.minimap.ChangeZoomLevelAction { *; }
 -keep class de.timklge.karooroutegraph.datatypes.minimap.ChangeMinimapZoomLevel { *; }
 -keep class de.timklge.karooroutegraph.datatypes.minimap.ChangeVerticalZoomLevelAction { *; }
+
+# Karoo's exported route editor resolves these private Parcelable class names from the Bundle.
+-keep class io.hammerhead.datamodels.routes.** { *; }
+-keep class io.hammerhead.geomodule.Coordinates { *; }

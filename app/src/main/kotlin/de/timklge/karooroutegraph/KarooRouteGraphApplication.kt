@@ -18,12 +18,14 @@ package de.timklge.karooroutegraph
 
 import android.app.Application
 import de.timklge.karooroutegraph.amap.api.AmapApiService
-import de.timklge.karooroutegraph.amap.api.KarooAmapTransport
+import de.timklge.karooroutegraph.amap.api.DirectAmapTransport
 import de.timklge.karooroutegraph.amap.coordinates.CoordinateConverter
 import de.timklge.karooroutegraph.amap.gpx.GpxExporter
 import de.timklge.karooroutegraph.amap.gpx.GpxFileManager
+import de.timklge.karooroutegraph.amap.karoo.KarooRouteImporter
 import de.timklge.karooroutegraph.amap.routing.AmapRoutePlanner
 import de.timklge.karooroutegraph.amap.routing.RoutePlannerViewModel
+import de.timklge.karooroutegraph.amap.storage.RoutePlannerStorage
 import de.timklge.karooroutegraph.datatypes.minimap.MinimapViewModelProvider
 import de.timklge.karooroutegraph.pois.NearbyPOIPbfDownloadService
 import de.timklge.karooroutegraph.pois.NominatimProvider
@@ -39,18 +41,21 @@ import org.koin.dsl.module
 
 val appModule = module {
     singleOf(::KarooSystemServiceProvider) { createdAtStart() }
-    single { KarooAmapTransport(get()) }
-    single { AmapApiService(BuildConfig.AMAP_WEB_API_KEY, get<KarooAmapTransport>()) }
+    single { DirectAmapTransport() }
+    single { AmapApiService(BuildConfig.AMAP_WEB_API_KEY, get<DirectAmapTransport>()) }
     singleOf(::CoordinateConverter)
     singleOf(::AmapRoutePlanner)
-    factory { RoutePlannerViewModel(get(), get(), get()) }
+    singleOf(::RoutePlannerStorage)
+    factory { RoutePlannerViewModel(get(), get(), get(), get()) }
     singleOf(::GpxExporter)
     singleOf(::GpxFileManager)
+    singleOf(::KarooRouteImporter)
     singleOf(::RouteGraphViewModelProvider) { createdAtStart() }
     singleOf(::RouteGraphDisplayViewModelProvider) { createdAtStart() }
     singleOf(::OverpassPOIProvider) { createdAtStart() }
     singleOf(::NominatimProvider) { createdAtStart() }
     singleOf(::MinimapViewModelProvider) { createdAtStart() }
+    singleOf(::LocalMapTileRenderer) { createdAtStart() }
     singleOf(::TileDownloadService) { createdAtStart() }
     singleOf(::LocationViewModelProvider) { createdAtStart() }
     singleOf(::PoiApproachAlertService) { createdAtStart() }

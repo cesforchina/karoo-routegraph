@@ -53,6 +53,7 @@ import com.mapbox.turf.TurfMeasurement
 import com.mapbox.turf.TurfMisc
 import de.timklge.karooroutegraph.KarooRouteGraphExtension.Companion.TAG
 import de.timklge.karooroutegraph.LocationViewModelProvider
+import de.timklge.karooroutegraph.MapSource
 import de.timklge.karooroutegraph.R
 import de.timklge.karooroutegraph.RouteGraphDisplayViewModel
 import de.timklge.karooroutegraph.RouteGraphDisplayViewModelProvider
@@ -291,7 +292,17 @@ class MinimapDataType(
                         userProfile.preferredUnit.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL
                     canvas.drawColor(if (nightMode) Color.BLACK else Color.WHITE)
                     val intZoom = floor(zoomLevel).toInt()
-                    val requiredTiles = getRequiredTiles(zoomLevel, width, height, centerPosition)
+                    val minimapMapSource = if (settings.minimapMapSource == MapSource.LOCAL_MAP) {
+                        MapSource.LOCAL_MAP
+                    } else {
+                        MapSource.OSM
+                    }
+                    val requiredTiles = getRequiredTiles(
+                        zoomLevel,
+                        width,
+                        height,
+                        centerPosition,
+                    ).map { tile -> tile.copy(source = minimapMapSource) }.toSet()
                     val downloadedTiles = requiredTiles.associateWith { tile ->
                         this@MinimapDataType.tileDownloadService.getTileIfAvailableInstantly(tile)
                     }

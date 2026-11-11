@@ -16,9 +16,24 @@
 
 package de.timklge.karooroutegraph
 
+import kotlinx.serialization.Serializable
+
+@Serializable
+enum class MapSource(val value: String) {
+    OSM("osm"),
+    AMAP_STATIC("amap-static"),
+    LOCAL_MAP("local-map"),
+}
+
 enum class OsmMapStyle (val value: String) {
     MAPNIK("mapnik"),
     CYCLEMAP("cyclemap"),
 }
 
-data class Tile(val x: Int, val y: Int, val z: Int, val style: OsmMapStyle = OsmMapStyle.MAPNIK)
+data class Tile(
+    val x: Int,
+    val y: Int,
+    val z: Int,
+    val style: OsmMapStyle = OsmMapStyle.MAPNIK,
+    val source: MapSource = MapSource.OSM,
+)

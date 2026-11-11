@@ -14,7 +14,13 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.channels.trySendBlocking
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.single
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import java.io.IOException
+import java.util.concurrent.TimeUnit
 
 data class AmapHttpResponse(val statusCode: Int, val body: String)
 
@@ -23,8 +29,42 @@ fun interface AmapTransport {
 }
 
 /**
- * Routes requests through KarooSystemService, matching the project's existing HTTP path and allowing
- * Karoo to use its companion-provided connection.
+ * Uses the Karoo's own network connection. The KarooSystemService HTTP relay can exit through an
+ * overseas Hammerhead endpoint, which makes domestic AMap keys hit error 10045 and also imposes a
+ * response-size ceiling on long routes.
+ */
+class DirectAmapTransport(
+    timeoutMillis: Long = DEFAULT_TIMEOUT_MILLIS,
+) : AmapTransport {
+    private val client = OkHttpClient.Builder()
+        .callTimeout(timeoutMillis, TimeUnit.MILLISECONDS)
+        .build()
+
+    override suspend fun get(url: String): AmapHttpResponse = withContext(Dispatchers.IO) {
+        try {
+            val request = Request.Builder()
+                .url(url)
+                .header("User-Agent", KarooRouteGraphExtension.TAG)
+                .header("Accept", "application/json")
+                .build()
+            client.newCall(request).execute().use { response ->
+                AmapHttpResponse(
+                    statusCode = response.code,
+                    body = response.body.string(),
+                )
+            }
+        } catch (error: IOException) {
+            throw AmapNetworkException(error.message ?: "direct request failed", error)
+        }
+    }
+
+    private companion object {
+        const val DEFAULT_TIMEOUT_MILLIS = 60_000L
+    }
+}
+
+/**
+ * Legacy relay transport retained for devices without direct networking.
  */
 class KarooAmapTransport(
     private val karooSystemServiceProvider: KarooSystemServiceProvider,
@@ -71,7 +111,7 @@ class KarooAmapTransport(
     }
 
     private companion object {
-        const val DEFAULT_TIMEOUT_MILLIS = 20_000L
+        const val DEFAULT_TIMEOUT_MILLIS = 60_000L
     }
 }
 
@@ -81,7 +121,7 @@ sealed class AmapException(message: String, cause: Throwable? = null) :
 class AmapMissingKeyException :
     AmapException("AMap Web Service API key is not configured")
 
-class AmapNetworkException(detail: String, cause: Throwable? = null) :
+class AmapNetworkException(val detail: String, cause: Throwable? = null) :
     AmapException("AMap network request failed: $detail", cause)
 
 class AmapTimeoutException(timeoutMillis: Long, cause: Throwable? = null) :

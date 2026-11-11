@@ -65,7 +65,7 @@ class AmapApiServiceTest {
         assertEquals(3, routes.single().points.size)
         assertEquals(CoordinateSystem.GCJ02, routes.single().points.first().coordinateSystem)
         assertTrue(requestedUrl.contains("/v5/direction/bicycling"))
-        assertTrue(requestedUrl.contains("show_fields=cost%2Cnavi%2Cpolyline"))
+        assertTrue(requestedUrl.contains("show_fields=cost%2Cpolyline"))
     }
 
     @Test

@@ -13,6 +13,7 @@ import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
 import androidx.core.content.FileProvider
+import de.timklge.karooroutegraph.amap.share.PhoneGpxShareActivity
 import java.io.File
 import java.io.FileOutputStream
 
@@ -29,6 +30,16 @@ class GpxFileManager(private val context: Context) {
             putExtra(Intent.EXTRA_STREAM, uri)
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
+    }
+
+    fun createPhoneShareIntent(fileName: String, content: ByteArray): Intent {
+        val file = writeToShareCache(fileName, content)
+        val uri = FileProvider.getUriForFile(
+            context,
+            "${context.packageName}.files",
+            file,
+        )
+        return PhoneGpxShareActivity.createIntent(context, uri, file.name)
     }
 
     fun saveToDownloads(fileName: String, content: ByteArray): Uri {

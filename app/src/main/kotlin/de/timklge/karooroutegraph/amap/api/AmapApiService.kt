@@ -44,7 +44,7 @@ class AmapApiService(
                 "origin" to origin.toAmapParameter(),
                 "destination" to destination.toAmapParameter(),
                 "alternative_route" to alternativeRoutes.toString(),
-                "show_fields" to "cost,navi,polyline",
+                "show_fields" to "cost,polyline",
                 "output" to "json",
             ),
         )
@@ -160,6 +160,13 @@ class AmapApiService(
     private fun validateApiStatus(status: String, info: String?, infoCode: String?) {
         if (status == "1" && infoCode == "10000") return
         val detail = info ?: "Unknown error"
+        if (infoCode == "20803") {
+            throw AmapServiceException(
+                infoCode,
+                "The selected endpoints exceed AMap's bicycling range. " +
+                    "Try a closer endpoint or split the trip into multiple routes.",
+            )
+        }
         if (infoCode in RATE_LIMIT_CODES) {
             throw AmapRateLimitException(infoCode, detail)
         }

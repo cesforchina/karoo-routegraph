@@ -193,6 +193,8 @@
     <string name="amap_route_planner">AMap route planner</string>
     <string name="route_origin">Origin</string>
     <string name="use_current_location">Use current GPS position</string>
+    <string name="origin_search">Origin name or address</string>
+    <string name="search_origin">Search origin</string>
     <string name="route_destination">Destination</string>
     <string name="destination_search">Destination name or address</string>
     <string name="search_region_optional">City or region (optional)</string>
@@ -202,10 +204,34 @@
     <string name="plan_bicycle_routes">Plan bicycle routes</string>
     <string name="route_candidate">Route %1$d</string>
     <string name="route_preview">Route preview</string>
+    <string name="map_source">Map source</string>
+    <string name="map_source_osm">OSM</string>
+    <string name="map_source_amap">AMap</string>
+    <string name="map_source_local">Local offline map</string>
     <string name="route_name">Route name</string>
     <string name="save_gpx">Save GPX</string>
-    <string name="share_gpx">Share GPX</string>
+    <string name="share_gpx">Send to phone</string>
+    <string name="phone_share_title">Send GPX to phone</string>
+    <string name="phone_share_instructions">Connect the phone and Karoo to the same Wi-Fi or phone hotspot, then scan this code.</string>
+    <string name="phone_share_qr_description">GPX download QR code</string>
+    <string name="phone_share_downloaded">Downloaded by phone</string>
+    <string name="phone_share_no_wifi">No local Wi-Fi address found. Connect Karoo to the phone hotspot or the same Wi-Fi network.</string>
+    <string name="phone_share_read_failed">Could not read the generated GPX file.</string>
+    <string name="import_to_karoo_experimental">Import to Karoo (experimental)</string>
     <string name="gpx_saved">GPX saved to Downloads/KarooRouteGraph</string>
-    <string name="gpx_import_hint">Import the GPX through Hammerhead Dashboard or share it to the Hammerhead Companion App.</string>
+    <string name="gpx_import_hint">Direct import opens the native Karoo editor; review the route and save it there. GPX export remains the supported fallback.</string>
+    <string name="search">Search</string>
+    <string name="delete">Delete</string>
+    <string name="search_history">Search history</string>
+    <string name="clear_search_history">Clear search history</string>
+    <string name="clear_search_history_confirmation">Delete all saved search entries?</string>
+    <string name="delete_search_history">Delete search entry?</string>
+    <string name="saved_routes">Saved routes</string>
+    <string name="save_in_app">Save in RouteGraph</string>
+    <string name="delete_saved_route">Delete saved route?</string>
+    <string name="fullscreen_map">Open full-screen map</string>
+    <string name="map_free_rotation">Free map rotation</string>
+    <string name="map_north_up">Keep north up</string>
+    <string name="map_center_location">Center on current location or route start</string>
 
 </resources>

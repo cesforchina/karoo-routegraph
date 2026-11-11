@@ -17,6 +17,7 @@
 package de.timklge.karooroutegraph.screens
 
 import de.timklge.karooroutegraph.GradientIndicatorFrequency
+import de.timklge.karooroutegraph.MapSource
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -36,6 +37,7 @@ data class RouteGraphSettings(
     val shiftForRadarSwimLane: Boolean = true,
     val indicateSurfaceConditionsOnGraph: Boolean = false,
     val minimapNightMode: Boolean = true,
+    val minimapMapSource: MapSource = MapSource.OSM,
     val showEtaOnVerticalRouteGraph: Boolean = true,
     val showRemainingElevationOnVerticalRouteGraph: Boolean = true,
     val showRemainingDistanceOnVerticalRouteGraph: Boolean = true,

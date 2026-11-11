@@ -14,6 +14,10 @@ import de.timklge.karooroutegraph.amap.coordinates.CoordinateSystem
 import de.timklge.karooroutegraph.amap.coordinates.GeoCoordinate
 import de.timklge.karooroutegraph.amap.gpx.GpxExportOptions
 import de.timklge.karooroutegraph.amap.gpx.GpxExporter
+import de.timklge.karooroutegraph.amap.storage.RoutePlannerStorage
+import de.timklge.karooroutegraph.amap.storage.RouteSearchHistoryEntry
+import de.timklge.karooroutegraph.amap.storage.SavedPlannedRoute
+import de.timklge.karooroutegraph.amap.storage.SearchEndpoint
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -24,6 +28,10 @@ data class RoutePlannerUiState(
     val useCurrentLocation: Boolean = true,
     val originLongitude: String = "",
     val originLatitude: String = "",
+    val originSystem: CoordinateSystem = CoordinateSystem.WGS84,
+    val originQuery: String = "",
+    val originSearchRegion: String = "",
+    val originSearchResults: List<AmapPlace> = emptyList(),
     val destinationLongitude: String = "",
     val destinationLatitude: String = "",
     val destinationSystem: CoordinateSystem = CoordinateSystem.WGS84,
@@ -32,10 +40,17 @@ data class RoutePlannerUiState(
     val searchResults: List<AmapPlace> = emptyList(),
     val routes: List<AmapPlannedRoute> = emptyList(),
     val selectedRouteIndex: Int? = null,
-    val isSearching: Boolean = false,
+    val isSearchingOrigin: Boolean = false,
+    val isSearchingDestination: Boolean = false,
     val isPlanning: Boolean = false,
     val errorMessage: String? = null,
+    val statusMessage: String? = null,
+    val searchHistory: List<RouteSearchHistoryEntry> = emptyList(),
+    val savedRoutes: List<SavedPlannedRoute> = emptyList(),
 ) {
+    val isSearching: Boolean
+        get() = isSearchingOrigin || isSearchingDestination
+
     val selectedRoute: AmapPlannedRoute?
         get() = selectedRouteIndex?.let(routes::getOrNull)
 }
@@ -44,48 +59,104 @@ class RoutePlannerViewModel(
     private val routePlanner: AmapRoutePlanner,
     private val locationViewModelProvider: LocationViewModelProvider,
     private val gpxExporter: GpxExporter,
+    private val storage: RoutePlannerStorage,
 ) : ViewModel() {
     private val mutableState = MutableStateFlow(RoutePlannerUiState())
     val state = mutableState.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            storage.history.collect { history ->
+                mutableState.update { it.copy(searchHistory = history) }
+            }
+        }
+        viewModelScope.launch {
+            storage.savedRoutes.collect { routes ->
+                mutableState.update { it.copy(savedRoutes = routes) }
+            }
+        }
+    }
 
     fun setUseCurrentLocation(value: Boolean) {
         mutableState.update { it.copy(useCurrentLocation = value, errorMessage = null) }
     }
 
-    fun setOriginLongitude(value: String) {
-        mutableState.update { it.copy(originLongitude = value, errorMessage = null) }
-    }
-
-    fun setOriginLatitude(value: String) {
-        mutableState.update { it.copy(originLatitude = value, errorMessage = null) }
-    }
-
-    fun setDestinationLongitude(value: String) {
+    fun setOriginQuery(value: String) {
         mutableState.update {
             it.copy(
-                destinationLongitude = value,
-                destinationSystem = CoordinateSystem.WGS84,
+                originQuery = value,
+                originLongitude = "",
+                originLatitude = "",
+                originSystem = CoordinateSystem.WGS84,
+                originSearchResults = emptyList(),
+                routes = emptyList(),
+                selectedRouteIndex = null,
                 errorMessage = null,
             )
         }
     }
 
-    fun setDestinationLatitude(value: String) {
-        mutableState.update {
-            it.copy(
-                destinationLatitude = value,
-                destinationSystem = CoordinateSystem.WGS84,
-                errorMessage = null,
-            )
-        }
+    fun setOriginSearchRegion(value: String) {
+        mutableState.update { it.copy(originSearchRegion = value, errorMessage = null) }
     }
 
     fun setDestinationQuery(value: String) {
-        mutableState.update { it.copy(destinationQuery = value, errorMessage = null) }
+        mutableState.update {
+            it.copy(
+                destinationQuery = value,
+                destinationLongitude = "",
+                destinationLatitude = "",
+                destinationSystem = CoordinateSystem.WGS84,
+                searchResults = emptyList(),
+                routes = emptyList(),
+                selectedRouteIndex = null,
+                errorMessage = null,
+            )
+        }
     }
 
     fun setSearchRegion(value: String) {
         mutableState.update { it.copy(searchRegion = value, errorMessage = null) }
+    }
+
+    fun searchOrigins() {
+        val snapshot = mutableState.value
+        if (snapshot.originQuery.isBlank()) {
+            mutableState.update { it.copy(errorMessage = "Enter an origin to search") }
+            return
+        }
+
+        viewModelScope.launch {
+            mutableState.update { it.copy(isSearchingOrigin = true, errorMessage = null) }
+            try {
+                val results = routePlanner.searchPlaces(
+                    keywords = snapshot.originQuery.trim(),
+                    region = snapshot.originSearchRegion.trim().ifBlank { null },
+                )
+                mutableState.update {
+                    it.copy(
+                        originSearchResults = results,
+                        isSearchingOrigin = false,
+                        errorMessage = if (results.isEmpty()) "No origins found" else null,
+                    )
+                }
+                if (results.isNotEmpty()) {
+                    storage.addSearch(
+                        SearchEndpoint.ORIGIN,
+                        snapshot.originQuery,
+                        snapshot.originSearchRegion,
+                    )
+                }
+            } catch (error: Exception) {
+                if (error is CancellationException) throw error
+                mutableState.update {
+                    it.copy(
+                        isSearchingOrigin = false,
+                        errorMessage = error.message ?: "Origin search failed",
+                    )
+                }
+            }
+        }
     }
 
     fun searchDestinations() {
@@ -96,28 +167,50 @@ class RoutePlannerViewModel(
         }
 
         viewModelScope.launch {
-            mutableState.update { it.copy(isSearching = true, errorMessage = null) }
+            mutableState.update { it.copy(isSearchingDestination = true, errorMessage = null) }
             try {
-                val results = routePlanner.searchDestinations(
+                val results = routePlanner.searchPlaces(
                     keywords = snapshot.destinationQuery.trim(),
                     region = snapshot.searchRegion.trim().ifBlank { null },
                 )
                 mutableState.update {
                     it.copy(
                         searchResults = results,
-                        isSearching = false,
+                        isSearchingDestination = false,
                         errorMessage = if (results.isEmpty()) "No destinations found" else null,
+                    )
+                }
+                if (results.isNotEmpty()) {
+                    storage.addSearch(
+                        SearchEndpoint.DESTINATION,
+                        snapshot.destinationQuery,
+                        snapshot.searchRegion,
                     )
                 }
             } catch (error: Exception) {
                 if (error is CancellationException) throw error
                 mutableState.update {
                     it.copy(
-                        isSearching = false,
+                        isSearchingDestination = false,
                         errorMessage = error.message ?: "Destination search failed",
                     )
                 }
             }
+        }
+    }
+
+    fun selectOrigin(place: AmapPlace) {
+        mutableState.update {
+            it.copy(
+                originQuery = place.name,
+                originLongitude = place.coordinate.longitude.toString(),
+                originLatitude = place.coordinate.latitude.toString(),
+                originSystem = place.coordinate.coordinateSystem,
+                originSearchResults = emptyList(),
+                routes = emptyList(),
+                selectedRouteIndex = null,
+                errorMessage = null,
+            )
         }
     }
 
@@ -151,7 +244,7 @@ class RoutePlannerViewModel(
                 parseCoordinate(
                     longitude = snapshot.originLongitude,
                     latitude = snapshot.originLatitude,
-                    system = CoordinateSystem.WGS84,
+                    system = snapshot.originSystem,
                     label = "origin",
                 )
             }
@@ -189,7 +282,7 @@ class RoutePlannerViewModel(
                     BicycleRouteRequest(
                         origin = origin,
                         destination = destination,
-                    )
+                    ),
                 )
                 mutableState.update {
                     it.copy(
@@ -209,6 +302,65 @@ class RoutePlannerViewModel(
                 }
             }
         }
+    }
+
+    fun applySearchHistory(entry: RouteSearchHistoryEntry) {
+        when (entry.endpoint) {
+            SearchEndpoint.ORIGIN -> {
+                setUseCurrentLocation(false)
+                setOriginQuery(entry.query)
+                setOriginSearchRegion(entry.region)
+                setSearchRegion(entry.region)
+            }
+            SearchEndpoint.DESTINATION -> {
+                setDestinationQuery(entry.query)
+                setSearchRegion(entry.region)
+                setOriginSearchRegion(entry.region)
+            }
+        }
+    }
+
+    fun deleteSearchHistory(id: String) {
+        viewModelScope.launch { storage.deleteSearch(id) }
+    }
+
+    fun clearSearchHistory() {
+        viewModelScope.launch { storage.clearSearchHistory() }
+    }
+
+    fun saveSelectedRoute(routeName: String) {
+        val route = mutableState.value.selectedRoute ?: run {
+            mutableState.update { it.copy(errorMessage = "Select a route before saving") }
+            return
+        }
+        viewModelScope.launch {
+            runCatching { storage.saveRoute(routeName, route) }
+                .onSuccess {
+                    mutableState.update {
+                        it.copy(statusMessage = "Route saved in RouteGraph", errorMessage = null)
+                    }
+                }
+                .onFailure { error ->
+                    mutableState.update {
+                        it.copy(errorMessage = error.message ?: "Failed to save route")
+                    }
+                }
+        }
+    }
+
+    fun loadSavedRoute(savedRoute: SavedPlannedRoute) {
+        mutableState.update {
+            it.copy(
+                routes = listOf(savedRoute.route),
+                selectedRouteIndex = 0,
+                errorMessage = null,
+                statusMessage = null,
+            )
+        }
+    }
+
+    fun deleteSavedRoute(id: String) {
+        viewModelScope.launch { storage.deleteRoute(id) }
     }
 
     fun selectRoute(index: Int) {

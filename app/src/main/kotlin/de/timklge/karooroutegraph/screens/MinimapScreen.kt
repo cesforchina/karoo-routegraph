@@ -16,7 +16,12 @@
 
 package de.timklge.karooroutegraph.screens
 
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,6 +32,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -40,9 +46,12 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import de.timklge.karooroutegraph.KarooSystemServiceProvider
+import de.timklge.karooroutegraph.MapSource
 import de.timklge.karooroutegraph.R
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -55,14 +64,20 @@ fun MinimapScreen(
 ) {
     val coroutineScope = rememberCoroutineScope()
     val initialSettings = remember { runBlocking { karooSystemServiceProvider.currentSettings() } }
+    val context = LocalContext.current
     var minimapNightMode by remember { mutableStateOf(initialSettings.minimapNightMode) }
     var showPOIsOnMinimap by remember { mutableStateOf(initialSettings.showPOILabelsOnMinimap) }
+    var minimapMapSource by remember { mutableStateOf(initialSettings.minimapMapSource) }
+    val storagePermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions(),
+    ) { }
 
     suspend fun updateSettings(){
         karooSystemServiceProvider.saveSettings { settings ->
             settings.copy(
                 minimapNightMode = minimapNightMode,
-                showPOILabelsOnMinimap = showPOIsOnMinimap
+                showPOILabelsOnMinimap = showPOIsOnMinimap,
+                minimapMapSource = minimapMapSource
             )
         }
     }
@@ -71,6 +86,7 @@ fun MinimapScreen(
         karooSystemServiceProvider.streamSettings().collect { settings ->
             minimapNightMode = settings.minimapNightMode
             showPOIsOnMinimap = settings.showPOILabelsOnMinimap
+            minimapMapSource = settings.minimapMapSource
         }
     }
 
@@ -95,6 +111,37 @@ fun MinimapScreen(
                         Text(stringResource(R.string.minimap_night_mode))
                     }
 
+                    Text(stringResource(R.string.map_source))
+                    MinimapMapSourceOption(
+                        selected = minimapMapSource == MapSource.OSM,
+                        label = stringResource(R.string.map_source_osm),
+                        onClick = {
+                            minimapMapSource = MapSource.OSM
+                            coroutineScope.launch { updateSettings() }
+                        },
+                    )
+                    MinimapMapSourceOption(
+                        selected = minimapMapSource == MapSource.LOCAL_MAP,
+                        label = stringResource(R.string.map_source_local),
+                        onClick = {
+                            minimapMapSource = MapSource.LOCAL_MAP
+                            if (
+                                ContextCompat.checkSelfPermission(
+                                    context,
+                                    Manifest.permission.READ_EXTERNAL_STORAGE,
+                                ) != PackageManager.PERMISSION_GRANTED
+                            ) {
+                                storagePermissionLauncher.launch(
+                                    arrayOf(
+                                        Manifest.permission.READ_EXTERNAL_STORAGE,
+                                        Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                                    ),
+                                )
+                            }
+                            coroutineScope.launch { updateSettings() }
+                        },
+                    )
+
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Switch(checked = showPOIsOnMinimap, onCheckedChange = {
                             showPOIsOnMinimap = it
@@ -114,4 +161,20 @@ fun MinimapScreen(
             }
         }
     )
+}
+
+@Composable
+private fun MinimapMapSourceOption(
+    selected: Boolean,
+    label: String,
+    onClick: () -> Unit,
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.clickable(onClick = onClick),
+    ) {
+        RadioButton(selected = selected, onClick = onClick)
+        Spacer(modifier = Modifier.width(10.dp))
+        Text(label)
+    }
 }

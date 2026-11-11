@@ -194,6 +194,8 @@
     <string name="amap_route_planner">AMap-Routenplaner</string>
     <string name="route_origin">Start</string>
     <string name="use_current_location">Aktuelle GPS-Position verwenden</string>
+    <string name="origin_search">Startname oder Adresse</string>
+    <string name="search_origin">Start suchen</string>
     <string name="route_destination">Ziel</string>
     <string name="destination_search">Zielname oder Adresse</string>
     <string name="search_region_optional">Stadt oder Region (optional)</string>
@@ -203,10 +205,34 @@
     <string name="plan_bicycle_routes">Fahrradrouten planen</string>
     <string name="route_candidate">Route %1$d</string>
     <string name="route_preview">Routenvorschau</string>
+    <string name="map_source">Kartenquelle</string>
+    <string name="map_source_osm">OSM</string>
+    <string name="map_source_amap">AMap</string>
+    <string name="map_source_local">Lokale Offline-Karte</string>
     <string name="route_name">Routenname</string>
     <string name="save_gpx">GPX speichern</string>
-    <string name="share_gpx">GPX teilen</string>
+    <string name="share_gpx">An Telefon senden</string>
+    <string name="phone_share_title">GPX an Telefon senden</string>
+    <string name="phone_share_instructions">Telefon und Karoo mit demselben WLAN oder Telefon-Hotspot verbinden und diesen Code scannen.</string>
+    <string name="phone_share_qr_description">QR-Code zum GPX-Download</string>
+    <string name="phone_share_downloaded">Vom Telefon heruntergeladen</string>
+    <string name="phone_share_no_wifi">Keine lokale WLAN-Adresse gefunden. Karoo mit dem Telefon-Hotspot oder demselben WLAN verbinden.</string>
+    <string name="phone_share_read_failed">Die erzeugte GPX-Datei konnte nicht gelesen werden.</string>
+    <string name="import_to_karoo_experimental">In Karoo importieren (experimentell)</string>
     <string name="gpx_saved">GPX unter Downloads/KarooRouteGraph gespeichert</string>
-    <string name="gpx_import_hint">GPX über das Hammerhead Dashboard importieren oder mit der Hammerhead Companion App teilen.</string>
+    <string name="gpx_import_hint">Der Direktimport öffnet den Karoo-Routeneditor. Route dort prüfen und speichern; GPX bleibt die unterstützte Alternative.</string>
+    <string name="search">Suchen</string>
+    <string name="delete">Löschen</string>
+    <string name="search_history">Suchverlauf</string>
+    <string name="clear_search_history">Suchverlauf leeren</string>
+    <string name="clear_search_history_confirmation">Alle gespeicherten Sucheinträge löschen?</string>
+    <string name="delete_search_history">Sucheintrag löschen?</string>
+    <string name="saved_routes">Gespeicherte Routen</string>
+    <string name="save_in_app">In RouteGraph speichern</string>
+    <string name="delete_saved_route">Gespeicherte Route löschen?</string>
+    <string name="fullscreen_map">Vollbildkarte öffnen</string>
+    <string name="map_free_rotation">Karte frei drehen</string>
+    <string name="map_north_up">Norden oben halten</string>
+    <string name="map_center_location">Auf aktuellen Standort oder Routenstart zentrieren</string>
 
 </resources>

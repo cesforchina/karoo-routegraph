@@ -10,7 +10,7 @@ a button to navigate to POIs along the route (e. g. upcoming gas stations for re
 as a companion app on long rides where you want to have a quick overview of the route that includes upcoming checkpoints,
 climbs and refueling opportunities so that you can pace yourself accordingly.
 
-The app also includes an AMap-powered bicycle route planner for China. It can search for a destination, request candidate bicycle routes, preview a selected route on an OpenStreetMap basemap, and export it as a standard GPX file.
+The app also includes an AMap-powered bicycle route planner for China. It supports place search for both the origin and destination, candidate bicycle routes, interactive route previews using OSM, official AMap Static Maps, or local Mapsforge data, persistent search history and saved routes, and standards-compliant GPX export and phone transfer.
 
 Compatible with Karoo 2 and Karoo 3 devices.
 
@@ -28,7 +28,13 @@ AMap route planning requires an AMap **Web Service API key**. Do not commit API 
 2. Environment variable `AMAP_WEB_API_KEY`
 3. `amap.webApiKey` in the ignored project `local.properties`
 
-For a local source build that needs GitHub Packages credentials, keep them outside the repository in `~/.gradle/gradle.properties`:
+For a local build, the simplest configuration is an ignored `local.properties` file in the project root:
+
+```properties
+amap.webApiKey=YOUR_AMAP_WEB_SERVICE_KEY
+```
+
+For a source build that also needs GitHub Packages credentials, keep those credentials outside the repository in `~/.gradle/gradle.properties`:
 
 ```properties
 gpr.user=YOUR_GITHUB_USERNAME
@@ -36,7 +42,7 @@ gpr.key=YOUR_GITHUB_TOKEN
 AMAP_WEB_API_KEY=YOUR_AMAP_WEB_SERVICE_KEY
 ```
 
-A key embedded in an APK cannot be treated as a secret. Configure the restrictions required by AMap for production use, or place the Web Service calls behind an appropriate server-side proxy.
+This project currently uses the AMap Web Service APIs and Static Map API; it does not bundle the AMap Android Map SDK. A Web Service key is different from an Android-platform key and cannot be reused as one. A key embedded in an APK cannot be treated as a secret. Configure the restrictions required by AMap for production use, or place the Web Service calls behind an appropriate server-side proxy.
 
 ## Usage
 
@@ -57,7 +63,9 @@ By default, route graph datafields also feature a POI button in the top right co
 - ETA at end of route: Shows the estimated time of arrival at the end of the route.
 - Gravel remaining: Shows the remaining distance on offroad surfaces (gravel, dirt, loose surfaces like sand or grass) along the route. Requires surface condition display to be enabled in the settings.
 
-The **AMap route planner** is available from the app's main menu. It supports the current GPS position or manually entered WGS84 coordinates as the origin, AMap destination search, route candidate selection, distance/time summaries, an OSM-backed route preview, and GPX save/share actions.
+The **AMap route planner** is available from the app's main menu. The origin can use the current GPS position or the same AMap place-search flow as the destination. The planner shows route candidates with distance/time summaries and provides an interactive preview with pan, zoom, rotation, full-screen mode, map-source switching, compass/free-orientation control, and recentering on the current position (or the route origin when no position is available). Switching map sources preserves the camera position and zoom.
+
+Searches are stored locally and can be reused, deleted individually, or cleared after confirmation. Planned routes can also be named, saved inside the app, reopened, and deleted. For routes whose endpoints are at least 100 km apart, the planner requests one route instead of three to reduce calculation time.
 
 Additionally, you can enable chevrons on the map to indicate gradients. The chevrons are drawn on top of the route (see third screenshot). Find more information below.
 
@@ -88,11 +96,17 @@ Downloaded tiles are cached on the Karoo for offline use.
 
 The planner uses the official AMap Web Service APIs for destination search and bicycle directions. AMap route geometry is retained as GCJ-02 and converted to WGS84 before it is drawn on the OSM preview or exported.
 
-The preview uses the same cached OSM tile service as the minimap, but renders native 256 px tiles so labels and roads remain sharp. The selected route is drawn with start/end markers and automatically fitted to the preview.
+The preview supports three map sources:
 
-GPX export writes UTF-8 GPX 1.1 with the full WGS84 route shape, name, description, and distance. It does not invent elevation, timestamps, or turn instructions. Files can be saved to `Downloads/KarooRouteGraph` or shared through Android.
+- **OpenStreetMap:** online raster tiles with memory and disk caching.
+- **AMap:** official Static Map images requested from `https://restapi.amap.com/v3/staticmap`. The center image is loaded first, followed by the surrounding eight images on a fixed 3 x 3 grid. Images use an in-memory LRU cache and a seven-day disk cache, and request starts are limited to at most three per second. Already loaded images move and rotate with the camera while replacement images are loading.
+- **Local map:** Mapsforge `.map` files rendered directly from `/sdcard/offline/maps`. Multiple files can be placed in this directory; storage permission is required on the supported Karoo OS versions.
 
-The public Karoo Extension SDK does not expose an API for inserting a route directly into the native Karoo route library. Import the generated GPX through Hammerhead Dashboard or share it to the Hammerhead Companion App. Availability of a compatible on-device share target depends on the apps installed on the Karoo.
+Route geometry is always rendered locally from the complete point list: WGS84 over OSM/Mapsforge and GCJ-02 over AMap. AMap search, directions, and static images use direct device networking instead of the Karoo HTTP relay, avoiding the relay response-size limit on long route responses. The Minimap settings allow switching between OSM and the local offline source.
+
+GPX export writes UTF-8 GPX 1.1 with the full WGS84 route shape, name, description, and distance. It does not invent elevation, timestamps, or turn instructions. Files can be saved to `Downloads/KarooRouteGraph`. The **Share to phone** action starts a temporary HTTP transfer on the Karoo and displays a QR code; open the QR URL from a phone on the same local network to download the GPX.
+
+The public Karoo Extension SDK does not expose an API for inserting a route directly into the native Karoo route library. The app contains an explicitly experimental, version-gated handoff to the private route-creation activity verified only against Karoo Routes `4.217.1`; the native editor may still reject saving and this is not a supported integration contract. The reliable workflows remain importing the generated GPX through Hammerhead Dashboard or transferring it to a phone and importing it with the Hammerhead Companion App.
 
 ### Surface Conditions
 

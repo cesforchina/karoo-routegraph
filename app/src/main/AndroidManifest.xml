@@ -30,6 +30,10 @@
         android:name=".KarooRouteGraphApplication"
         android:theme="@style/Theme.AppCompat">
         <activity
+            android:name=".amap.share.PhoneGpxShareActivity"
+            android:exported="false" />
+
+        <activity
             android:name=".MainActivity"
             android:theme="@style/SplashTheme"
             android:exported="true">
